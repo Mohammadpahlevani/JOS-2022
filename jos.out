@@ -7,6 +7,23 @@ entering test_backtrace 3
 entering test_backtrace 2
 entering test_backtrace 1
 entering test_backtrace 0
+Stack backtrace 4001310(37,33):
+  rbp 000000800421bf20  rip 0000008004201107
+       kern/monitor.c:66: mon_backtrace+000000000000003d  args:3  0000000000000080  0000000004201107  0000000000000000
+  rbp 000000800421bf40  rip 00000080042000ba
+       kern/init.c:27: test_backtrace+0000000000000062  args:1  0000000000000000
+  rbp 000000800421bf60  rip 000000800420009d
+       kern/init.c:24: test_backtrace+0000000000000045  args:1  0000000000000001
+  rbp 000000800421bf80  rip 000000800420009d
+       kern/init.c:24: test_backtrace+0000000000000045  args:1  0000000000000002
+  rbp 000000800421bfa0  rip 000000800420009d
+       kern/init.c:24: test_backtrace+0000000000000045  args:1  0000000000000003
+  rbp 000000800421bfc0  rip 000000800420009d
+       kern/init.c:24: test_backtrace+0000000000000045  args:1  0000000000000004
+  rbp 000000800421bfe0  rip 000000800420009d
+       kern/init.c:24: test_backtrace+0000000000000045  args:1  0000000000000005
+  rbp 000000800421bff0  rip 0000008004200185
+       kern/init.c:59: i386_init+00000000000000a9  args:0
 leaving test_backtrace 0
 leaving test_backtrace 1
 leaving test_backtrace 2
@@ -15,4 +32,4 @@ leaving test_backtrace 4
 leaving test_backtrace 5
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu: terminating on signal 15 from pid 2587
+qemu: terminating on signal 15 from pid 3893
