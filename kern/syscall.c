@@ -14,7 +14,7 @@ syscall(uint64_t syscallno, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, 
 	panic("syscall not implemented");
 
 	switch (syscallno) {
-		
+
 	default:
 		return -E_NO_SYS;
 	}
