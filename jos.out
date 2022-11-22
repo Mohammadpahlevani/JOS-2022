@@ -1,35 +1,22 @@
 *** Now run 'gdb'.
 ***
-6828 decimal is 15254 octal!
-entering test_backtrace 5
-entering test_backtrace 4
-entering test_backtrace 3
-entering test_backtrace 2
-entering test_backtrace 1
-entering test_backtrace 0
-Stack backtrace 4001310(37,33):
-  rbp 000000800421bf20  rip 0000008004201107
-       kern/monitor.c:66: mon_backtrace+000000000000003d  args:3  0000000000000080  0000000004201107  0000000000000000
-  rbp 000000800421bf40  rip 00000080042000ba
-       kern/init.c:27: test_backtrace+0000000000000062  args:1  0000000000000000
-  rbp 000000800421bf60  rip 000000800420009d
-       kern/init.c:24: test_backtrace+0000000000000045  args:1  0000000000000001
-  rbp 000000800421bf80  rip 000000800420009d
-       kern/init.c:24: test_backtrace+0000000000000045  args:1  0000000000000002
-  rbp 000000800421bfa0  rip 000000800420009d
-       kern/init.c:24: test_backtrace+0000000000000045  args:1  0000000000000003
-  rbp 000000800421bfc0  rip 000000800420009d
-       kern/init.c:24: test_backtrace+0000000000000045  args:1  0000000000000004
-  rbp 000000800421bfe0  rip 000000800420009d
-       kern/init.c:24: test_backtrace+0000000000000045  args:1  0000000000000005
-  rbp 000000800421bff0  rip 0000008004200185
-       kern/init.c:59: i386_init+00000000000000a9  args:0
-leaving test_backtrace 0
-leaving test_backtrace 1
-leaving test_backtrace 2
-leaving test_backtrace 3
-leaving test_backtrace 4
-leaving test_backtrace 5
+6828 decimal is XXX octal!
+
+e820 MEMORY MAP
+size: 20, address: 0x0000000000000000, length: 0x000000000009fc00, type: 1
+size: 20, address: 0x000000000009fc00, length: 0x0000000000000400, type: 2
+size: 20, address: 0x00000000000f0000, length: 0x0000000000010000, type: 2
+size: 20, address: 0x0000000000100000, length: 0x000000000fefe000, type: 1
+size: 20, address: 0x000000000fffe000, length: 0x0000000000002000, type: 2
+size: 20, address: 0x00000000fffc0000, length: 0x0000000000040000, type: 2
+
+Physical memory: 256M available, base = 636K, extended = 261120K, npages = 65536
+Pages limited to 3276800 by upage address range (12800MB), Pages limited to 134201344 by remapped phys mem (524224MB)
+check_page_alloc() succeeded!
+check_page() succeeded!
+check_page_alloc() succeeded!
+check_page() succeeded!
+check_boot_pml4e() succeeded!
 Welcome to the JOS kernel monitor!
 Type 'help' for a list of commands.
-qemu: terminating on signal 15 from pid 3893
+qemu: terminating on signal 15 from pid 13909

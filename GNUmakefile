@@ -144,7 +144,7 @@ include kern/Makefrag
 
 
 ## We need KVM for qemu to export VMX
-QEMUOPTS = -cpu qemu64,+vmx -enable-kvm -m 256 -drive format=raw,file=$(OBJDIR)/kern/kernel.img -serial mon:stdio -gdb tcp::$(GDBPORT)
+QEMUOPTS = -cpu qemu64, -m 256 -drive format=raw,file=$(OBJDIR)/kern/kernel.img -serial mon:stdio -gdb tcp::$(GDBPORT)
 QEMUOPTS += $(shell if $(QEMU) -nographic -help | grep -q '^-D '; then echo '-D qemu.log'; fi)
 IMAGES = $(OBJDIR)/kern/kernel.img
 QEMUOPTS += $(QEMUEXTRA)
@@ -254,3 +254,4 @@ always:
 
 .PHONY: all always \
 	handin tarball clean realclean distclean grade handin-prep handin-check
+
