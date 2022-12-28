@@ -9,6 +9,7 @@
 #include <kern/pmap.h>
 #include <kern/kclock.h>
 #include <kern/multiboot.h>
+#include <kern/env.h>
 
 extern uint64_t pml4phys;
 #define BOOT_PAGE_TABLE_START ((uint64_t) KADDR((uint64_t) &pml4phys))
@@ -217,12 +218,14 @@ boot_alloc(uint32_t n)
 	//
 	// LAB 2: Your code here.
 
+
 	if((uint64_t)(nextfree + n) > (npages * PGSIZE + KERNBASE))
 		panic("out of memory in boot_alloc");
 	result = nextfree;
 	if(n != 0)
 		nextfree = ROUNDUP(nextfree + n,PGSIZE);
 	return result;
+
 }
 
 // Set up a four-level page table:
@@ -246,7 +249,9 @@ x64_vm_init(void)
 	//panic("i386_vm_init: This function is not finished\n");
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
-	//panic("x64_vm_init: this function is not finished\n");
+
+	panic("x64_vm_init: this function is not finished\n");
+
 	pml4e = boot_alloc(PGSIZE);
 	memset(pml4e, 0, PGSIZE);
 	boot_pml4e = pml4e;
@@ -259,6 +264,12 @@ x64_vm_init(void)
 	// array.  'npages' is the number of physical pages in memory.
 	// Your code goes here:
 	pages = (struct PageInfo*)boot_alloc(npages * sizeof(struct PageInfo));
+
+
+	//////////////////////////////////////////////////////////////////////
+	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
+	// LAB 3: Your code here.
+
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
 	// up the list of free physical pages. Once we've done so, all further
@@ -268,6 +279,7 @@ x64_vm_init(void)
 	check_page_free_list(1);
 	check_page_alloc();
 	page_check();
+
 	//////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory 
 	//////////////////////////////////////////////////////////////////////
@@ -277,7 +289,18 @@ x64_vm_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+
 	boot_map_region(pml4e, UPAGES, ROUNDUP(sizeof(struct PageInfo) * npages, PGSIZE), PADDR(pages), PTE_U);
+
+
+	//////////////////////////////////////////////////////////////////////
+	// Map the 'envs' array read-only by the user at linear address UENVS
+	// (ie. perm = PTE_U | PTE_P).
+	// Permissions:
+	//    - the new image at UENVS  -- kernel R, user R
+	//    - envs itself -- kernel RW, user NONE
+	// LAB 3: Your code here.
+
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -290,7 +313,9 @@ x64_vm_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+
 	boot_map_region(pml4e, KSTACKTOP-KSTKSIZE, KSTKSIZE, PADDR(bootstack), PTE_W);
+
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE. We have detected the number
 	// of physical pages to be npages.
@@ -299,6 +324,7 @@ x64_vm_init(void)
 	// Permissions: kernel RW, user NONE
 	// Your code goes here: 
 	boot_map_region(pml4e, KERNBASE, (npages * PGSIZE), 0x0, PTE_W);
+
 	// Check that the initial page directory has been set up correctly.
 	check_page_free_list(1);
 	check_page_alloc();
@@ -351,26 +377,16 @@ page_init(void)
 	// NB: Remember to mark the memory used for initial boot page table i.e (va>=BOOT_PAGE_TABLE_START && va < BOOT_PAGE_TABLE_END) as in-use (not free)
 	size_t i;
 	struct PageInfo* last = NULL;
-	char*  first_free_page = (char *) boot_alloc(0);
-	for (i = 0; i < npages; i++) {
-		if((i == 0) || (&pages[i] >= pa2page((physaddr_t)IOPHYSMEM) && (uintptr_t)page2kva(&pages[i]) < (uintptr_t)first_free_page)
-			|| (&pages[i] >= pa2page((physaddr_t)0x8000) && &pages[i] < pa2page((physaddr_t)0xe000))){
 
-			pages[i].pp_ref = 1;
-			pages[i].pp_link = NULL;
-		}
+	for (i = 0; i < npages; i++) {
+		pages[i].pp_ref = 0;
+		pages[i].pp_link = NULL;
+		if(last)
+			last->pp_link = &pages[i];
 		else
-		{
-			
-			pages[i].pp_ref = 0;
-			pages[i].pp_link = NULL;
-			if(last)
-				last->pp_link = &pages[i];
-			else
-				page_free_list = &pages[i];
-			
-			last = &pages[i];
-		}
+			page_free_list = &pages[i];
+		last = &pages[i];
+
 	}
 }
 
@@ -403,6 +419,7 @@ page_alloc(int alloc_flags)
 		newPage->pp_link = NULL;
 		return newPage;
 	}
+
 }
 
 //
@@ -425,11 +442,13 @@ page_free(struct PageInfo *pp)
 	// Fill this function in
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
+
 	if (pp->pp_ref != 0 || pp->pp_link != NULL)
 		panic("we have problem");
 	
 	pp->pp_link = page_free_list;
 	page_free_list = pp;
+
 }
 
 //
@@ -497,6 +516,7 @@ pml4e_walk(pml4e_t *pml4e, const void *va, int create)
 	}
 	else
 		return NULL;
+
 }
 
 
@@ -533,6 +553,7 @@ pdpe_walk(pdpe_t *pdpe,const void *va,int create){
 	}
 	else
 		return NULL;
+
 }
 // Given 'pgdir', a pointer to a page directory, pgdir_walk returns
 // a pointer to the page table entry (PTE) in the final page table. 
@@ -567,6 +588,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 	}
 	else
 		return NULL;
+
 }
 
 //
@@ -590,6 +612,7 @@ boot_map_region(pml4e_t *pml4e, uintptr_t la, size_t size, physaddr_t pa, int pe
 		pte_t *pte = pml4e_walk(pml4e, (char*)vaTemp, 1);
 		*pte = (uintptr_t)paTemp | perm | PTE_P;
 	}
+
 }
 
 //
@@ -629,8 +652,7 @@ page_insert(pml4e_t *pml4e, struct PageInfo *pp, void *va, int perm)
 	
 	pp->pp_ref++;
 	*pte = (page2pa(pp) & ~0xFFF) | (perm|PTE_P);
-	
-	
+
 	return 0;
 }
 
@@ -659,6 +681,7 @@ page_lookup(pml4e_t *pml4e, void *va, pte_t **pte_store)
 	if(pte_store != NULL)
 		*pte_store = pte;
 	return result;
+
 }
 
 //
@@ -701,6 +724,52 @@ tlb_invalidate(pml4e_t *pml4e, void *va)
 	// Flush the entry only if we're modifying the current address space.
 	// For now, there is only one address space, so always invalidate.
 	invlpg(va);
+}
+
+
+static uintptr_t user_mem_check_addr;
+
+//
+// Check that an environment is allowed to access the range of memory
+// [va, va+len) with permissions 'perm | PTE_P'.
+// Normally 'perm' will contain PTE_U at least, but this is not required.
+// 'va' and 'len' need not be page-aligned; you must test every page that
+// contains any of that range.  You will test either 'len/PGSIZE',
+// 'len/PGSIZE + 1', or 'len/PGSIZE + 2' pages.
+//
+// A user program can access a virtual address if (1) the address is below
+// ULIM, and (2) the page table gives it permission.  These are exactly
+// the tests you should implement here.
+//
+// If there is an error, set the 'user_mem_check_addr' variable to the first
+// erroneous virtual address.
+//
+// Returns 0 if the user program can access this range of addresses,
+// and -E_FAULT otherwise.
+//
+int
+user_mem_check(struct Env *env, const void *va, size_t len, int perm)
+{
+	// LAB 3: Your code here.
+	return 0;
+
+}
+
+//
+// Checks that environment 'env' is allowed to access the range
+// of memory [va, va+len) with permissions 'perm | PTE_U | PTE_P'.
+// If it can, then the function simply returns.
+// If it cannot, 'env' is destroyed and, if env is the current
+// environment, this function will not return.
+//
+void
+user_mem_assert(struct Env *env, const void *va, size_t len, int perm)
+{
+	if (user_mem_check(env, va, len, perm | PTE_U) < 0) {
+		cprintf("[%08x] user_mem_check assertion failure for "
+			"va %08x\n", env->env_id, user_mem_check_addr);
+		env_destroy(env);	// may not return
+	}
 }
 
 
@@ -874,6 +943,11 @@ check_boot_pml4e(pml4e_t *pml4e)
 	}
 
 
+	// check envs array (new test for lab 3)
+	n = ROUNDUP(NENV*sizeof(struct Env), PGSIZE);
+	for (i = 0; i < n; i += PGSIZE)
+		assert(check_va2pa(pml4e, UENVS + i) == PADDR(envs) + i);
+
 	// check phys mem
 	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
 		assert(check_va2pa(pml4e, KERNBASE + i) == i);
@@ -892,6 +966,9 @@ check_boot_pml4e(pml4e_t *pml4e)
 			//case PDX(UVPT):
 		case PDX(KSTACKTOP - 1):
 		case PDX(UPAGES):
+
+		case PDX(UENVS):
+
 			assert(pgdir[i] & PTE_P);
 			break;
 		default:
