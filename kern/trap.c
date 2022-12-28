@@ -10,7 +10,7 @@
 #include <kern/syscall.h>
 
 extern uintptr_t gdtdesc_64;
-struct Taskstate ts;
+static struct Taskstate ts;
 extern struct Segdesc gdt[];
 extern long gdt_pd;
 
@@ -24,6 +24,22 @@ static struct Trapframe *last_tf;
  * shifted function addresses can't be represented in relocation records.)
  */
 struct Gatedesc idt[256] = { { 0 } };
+/* @@@ copy to here for reference
+// Gate descriptors for interrupts and traps
+struct Gatedesc {
+	unsigned gd_off_15_0 : 16;   // low 16 bits of offset in segment
+	unsigned gd_ss : 16;         // segment selector
+	unsigned gd_ist : 3;        // # args, 0 for interrupt/trap gates
+	unsigned gd_rsv1 : 5;        // reserved(should be zero I guess)
+	unsigned gd_type : 4;        // type(STS_{TG,IG32,TG32})
+	unsigned gd_s : 1;           // must be 0 (system)
+	unsigned gd_dpl : 2;         // descriptor(meaning new) privilege level
+	unsigned gd_p : 1;           // Present
+	unsigned gd_off_31_16 : 16;  // high bits of offset in segment
+    uint32_t gd_off_32_63;       
+    uint32_t gd_rsv2;                   
+};
+*/
 struct Pseudodesc idt_pd = {0,0};
 
 
@@ -59,13 +75,53 @@ static const char *trapname(int trapno)
 	return "(unknown trap)";
 }
 
+extern void handleDivideError();
+extern void handleDebugException();
+extern void handleNonMaskableInterrupt();
+extern void handleBreakpoint();
+extern void handleOverflow();
+extern void handleBoundsCheck();
+extern void handleIllegalOpcode();
+extern void handleDeviceNotAvailable();
+extern void handleDoubleFault();
+extern void handleInvalidTaskSwitchSegment();
+extern void handleSegmentNotPresent();
+extern void handleStackException();
+extern void handleGeneralProtectionFault();
+extern void handlePageFault();
+extern void handleFloatingPointError();
+extern void handleAligmentCheck();
+extern void handleMachineCheck();
+extern void handleSIMDFloatingPointError();
+extern void handleSystemCall();
+extern void handleCatchall();
 
 void
 trap_init(void)
 {
 	extern struct Segdesc gdt[];
 
-	// LAB 3: Your code here.
+	// LAB 3: Your code here.//TODO:check this side 3 after finish
+	SETGATE(idt[T_DIVIDE], 0, GD_KT,handleDivideError , 0);
+	SETGATE(idt[T_DEBUG], 0, GD_KT, handleDebugException, 0);
+	SETGATE(idt[T_NMI], 0, GD_KT, handleNonMaskableInterrupt, 0);
+	SETGATE(idt[T_BRKPT], 0, GD_KT, handleBreakpoint, 3);
+	SETGATE(idt[T_OFLOW], 0, GD_KT, handleOverflow, 0);
+	SETGATE(idt[T_BOUND], 0, GD_KT, handleBoundsCheck, 0);
+	SETGATE(idt[T_ILLOP], 0, GD_KT, handleIllegalOpcode, 0);
+	SETGATE(idt[T_DEVICE], 0, GD_KT,handleDeviceNotAvailable , 0);
+	SETGATE(idt[T_DBLFLT], 0, GD_KT, handleDoubleFault, 0);
+	SETGATE(idt[T_TSS], 0, GD_KT, handleInvalidTaskSwitchSegment, 0);
+	SETGATE(idt[T_SEGNP], 0, GD_KT,handleSegmentNotPresent , 0);
+	SETGATE(idt[T_STACK], 0, GD_KT, handleStackException, 0);
+	SETGATE(idt[T_GPFLT], 0, GD_KT, handleGeneralProtectionFault, 0);
+	SETGATE(idt[T_PGFLT], 0, GD_KT, handlePageFault, 0);
+	SETGATE(idt[T_FPERR], 0, GD_KT, handleFloatingPointError, 0);
+	SETGATE(idt[T_ALIGN], 0, GD_KT,handleAligmentCheck , 0);
+	SETGATE(idt[T_MCHK], 0, GD_KT,handleMachineCheck , 0);
+	SETGATE(idt[T_SIMDERR], 0, GD_KT, handleSIMDFloatingPointError, 0);
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, handleSystemCall, 3);
+	SETGATE(idt[T_DEFAULT], 0, GD_KT,handleCatchall , 0);
 	idt_pd.pd_lim = sizeof(idt)-1;
 	idt_pd.pd_base = (uint64_t)idt;
 	// Per-CPU setup
@@ -76,7 +132,6 @@ trap_init(void)
 void
 trap_init_percpu(void)
 {
-
 	// Setup a TSS so that we get the right stack
 	// when we trap to the kernel.
 	ts.ts_esp0 = KSTACKTOP;
@@ -149,11 +204,20 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
-
-	// Unexpected trap: The user process or the kernel has a bug.
+	if (tf->tf_trapno == T_PGFLT){
+		page_fault_handler(tf);
+		return;
+	}else if (tf->tf_trapno == T_BRKPT){
+		monitor(tf);
+		return;
+	}else if (tf->tf_trapno == T_SYSCALL){
+		tf->tf_regs.reg_rax = syscall(tf->tf_regs.reg_rax, tf->tf_regs.reg_rdx, tf->tf_regs.reg_rcx,
+			tf->tf_regs.reg_rbx, tf->tf_regs.reg_rdi, tf->tf_regs.reg_rsi);
+		return;
+	}
 	print_trapframe(tf);
 	if (tf->tf_cs == GD_KT)
-		panic("unhandled trap in kernel");
+		panic("can not handle trap");
 	else {
 		env_destroy(curenv);
 		return;
@@ -163,7 +227,7 @@ trap_dispatch(struct Trapframe *tf)
 void
 trap(struct Trapframe *tf)
 {
-	//struct Trapframe *tf = &tf_;
+    //struct Trapframe *tf = &tf_;
 	// The environment may have set DF and some versions
 	// of GCC rely on DF being clear
 	asm volatile("cld" ::: "cc");
@@ -209,16 +273,20 @@ page_fault_handler(struct Trapframe *tf)
 	fault_va = rcr2();
 
 	// Handle kernel-mode page faults.
-
 	// LAB 3: Your code here.
-
+	if(tf->tf_cs == GD_KT || tf->tf_cs == GD_KD) {
+		panic("Page fault");
+		print_trapframe(tf);
+	}
+	
 	// We've already handled kernel-mode exceptions, so if we get here,
 	// the page fault happened in user mode.
-
 	// Destroy the environment that caused the fault.
 	cprintf("[%08x] user fault va %08x ip %08x\n",
-		curenv->env_id, fault_va, tf->tf_rip);
+	curenv->env_id, fault_va, tf->tf_rip);
 	print_trapframe(tf);
 	env_destroy(curenv);
 }
+
+
 

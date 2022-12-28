@@ -11,6 +11,7 @@
 #include <kern/multiboot.h>
 #include <kern/env.h>
 
+
 extern uint64_t pml4phys;
 #define BOOT_PAGE_TABLE_START ((uint64_t) KADDR((uint64_t) &pml4phys))
 #define BOOT_PAGE_TABLE_END   ((uint64_t) KADDR((uint64_t) (&pml4phys) + 5*PGSIZE))
@@ -250,7 +251,7 @@ x64_vm_init(void)
 	//////////////////////////////////////////////////////////////////////
 	// create initial page directory.
 
-	panic("x64_vm_init: this function is not finished\n");
+	//panic("x64_vm_init: this function is not finished\n");
 
 	pml4e = boot_alloc(PGSIZE);
 	memset(pml4e, 0, PGSIZE);
@@ -265,10 +266,11 @@ x64_vm_init(void)
 	// Your code goes here:
 	pages = (struct PageInfo*)boot_alloc(npages * sizeof(struct PageInfo));
 
-
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
 	// LAB 3: Your code here.
+	envs = (struct Env*) boot_alloc(NENV * sizeof(struct Env));
+	
 
 	//////////////////////////////////////////////////////////////////////
 	// Now that we've allocated the initial kernel data structures, we set
@@ -291,8 +293,6 @@ x64_vm_init(void)
 	// Your code goes here:
 
 	boot_map_region(pml4e, UPAGES, ROUNDUP(sizeof(struct PageInfo) * npages, PGSIZE), PADDR(pages), PTE_U);
-
-
 	//////////////////////////////////////////////////////////////////////
 	// Map the 'envs' array read-only by the user at linear address UENVS
 	// (ie. perm = PTE_U | PTE_P).
@@ -300,6 +300,9 @@ x64_vm_init(void)
 	//    - the new image at UENVS  -- kernel R, user R
 	//    - envs itself -- kernel RW, user NONE
 	// LAB 3: Your code here.
+	boot_map_region(pml4e, UENVS, PTSIZE, PADDR(envs), PTE_U);
+
+	
 
 
 	//////////////////////////////////////////////////////////////////////
@@ -323,6 +326,7 @@ x64_vm_init(void)
 	//      the PA range [0, npages*PGSIZE)
 	// Permissions: kernel RW, user NONE
 	// Your code goes here: 
+
 	boot_map_region(pml4e, KERNBASE, (npages * PGSIZE), 0x0, PTE_W);
 
 	// Check that the initial page directory has been set up correctly.
@@ -378,14 +382,26 @@ page_init(void)
 	size_t i;
 	struct PageInfo* last = NULL;
 
+	char*  first_free_page = (char *) boot_alloc(0);
 	for (i = 0; i < npages; i++) {
-		pages[i].pp_ref = 0;
-		pages[i].pp_link = NULL;
-		if(last)
-			last->pp_link = &pages[i];
+		if((i == 0) || (&pages[i] >= pa2page((physaddr_t)IOPHYSMEM) && (uintptr_t)page2kva(&pages[i]) < (uintptr_t)first_free_page)
+			|| (&pages[i] >= pa2page((physaddr_t)0x8000) && &pages[i] < pa2page((physaddr_t)0xe000))){
+
+			pages[i].pp_ref = 1;
+			pages[i].pp_link = NULL;
+		}
 		else
-			page_free_list = &pages[i];
-		last = &pages[i];
+		{
+			
+			pages[i].pp_ref = 0;
+			pages[i].pp_link = NULL;
+			if(last)
+				last->pp_link = &pages[i];
+			else
+				page_free_list = &pages[i];
+			
+			last = &pages[i];
+		}
 
 	}
 }
@@ -406,6 +422,7 @@ struct PageInfo *
 page_alloc(int alloc_flags)
 {
 	// Fill this function in
+
 	struct PageInfo *newPage;
 	newPage = page_free_list;
 	if (newPage == NULL)
@@ -490,6 +507,7 @@ page_decref(struct PageInfo* pp)
 pte_t *
 pml4e_walk(pml4e_t *pml4e, const void *va, int create)
 {
+
 	pte_t *pte = NULL;
 	pdpe_t *pdpe = NULL;
 	
@@ -526,6 +544,7 @@ pml4e_walk(pml4e_t *pml4e, const void *va, int create)
 // Hints are the same as in pml4e_walk
 pte_t *
 pdpe_walk(pdpe_t *pdpe,const void *va,int create){
+
 
 	pte_t *pte = NULL;
 	pde_t *pde = NULL;
@@ -567,6 +586,7 @@ pte_t *
 pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
+
 	pte_t *pte = NULL;
 	
 	
@@ -605,6 +625,7 @@ static void
 boot_map_region(pml4e_t *pml4e, uintptr_t la, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
+
 	uintptr_t top = ROUNDUP(la + size, PGSIZE);
 	char *vaTemp, *paTemp;
 	for(vaTemp = (char*)la, paTemp = (char*)pa; (uintptr_t)vaTemp < top; vaTemp+=PGSIZE, paTemp+=PGSIZE)
@@ -612,7 +633,6 @@ boot_map_region(pml4e_t *pml4e, uintptr_t la, size_t size, physaddr_t pa, int pe
 		pte_t *pte = pml4e_walk(pml4e, (char*)vaTemp, 1);
 		*pte = (uintptr_t)paTemp | perm | PTE_P;
 	}
-
 }
 
 //
@@ -644,6 +664,7 @@ int
 page_insert(pml4e_t *pml4e, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
+
 	pte_t *pte = pml4e_walk(pml4e, va, 1);
 	if (pte == NULL)
 		return -E_NO_MEM;
@@ -652,6 +673,8 @@ page_insert(pml4e_t *pml4e, struct PageInfo *pp, void *va, int perm)
 	
 	pp->pp_ref++;
 	*pte = (page2pa(pp) & ~0xFFF) | (perm|PTE_P);
+	
+	
 
 	return 0;
 }
@@ -671,6 +694,7 @@ struct PageInfo *
 page_lookup(pml4e_t *pml4e, void *va, pte_t **pte_store)
 {
 	// Fill this function in
+
 	struct PageInfo *result;
 	pte_t *pte = pml4e_walk(pml4e, va, 0);
 	if(pte == NULL) 
@@ -703,6 +727,7 @@ void
 page_remove(pml4e_t *pml4e, void *va)
 {
 	// Fill this function in
+
 	struct PageInfo *PageRemove = page_lookup(pml4e, va, 0);
 	if(PageRemove != NULL)
 	{
@@ -712,6 +737,7 @@ page_remove(pml4e_t *pml4e, void *va)
 			*pte = 0;
 		tlb_invalidate(pml4e, va);
 	}
+
 }
 
 //
@@ -751,6 +777,29 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
+	uintptr_t vaCurrent = (uintptr_t)ROUNDDOWN(va, PGSIZE);
+	uintptr_t vaLast = (uintptr_t)ROUNDUP(va + len, PGSIZE);
+
+	
+	perm = perm | PTE_P;
+	pte_t* pte = NULL;
+	
+	for( ;vaCurrent < vaLast; vaCurrent += PGSIZE) {
+		if(vaCurrent < PGSIZE)
+			user_mem_check_addr = (uintptr_t) va;
+		else
+			user_mem_check_addr = vaCurrent;
+		
+		if(vaCurrent >= ULIM) {
+			return -E_FAULT;
+		}else {
+			pte = pml4e_walk(env->env_pml4e, (void*)vaCurrent, 0);
+
+			if(!pte || (*pte & perm) != perm)
+				return -E_FAULT;
+		}
+	}
+
 	return 0;
 
 }
@@ -771,6 +820,7 @@ user_mem_assert(struct Env *env, const void *va, size_t len, int perm)
 		env_destroy(env);	// may not return
 	}
 }
+
 
 
 // --------------------------------------------------------------
@@ -947,6 +997,7 @@ check_boot_pml4e(pml4e_t *pml4e)
 	n = ROUNDUP(NENV*sizeof(struct Env), PGSIZE);
 	for (i = 0; i < n; i += PGSIZE)
 		assert(check_va2pa(pml4e, UENVS + i) == PADDR(envs) + i);
+
 
 	// check phys mem
 	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
