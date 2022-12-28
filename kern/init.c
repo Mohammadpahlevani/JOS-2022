@@ -14,6 +14,7 @@
 #include <kern/env.h>
 #include <kern/trap.h>
 
+
 uint64_t end_debug;
 
 
@@ -50,6 +51,7 @@ i386_init(void)
 
 
 
+
 #if defined(TEST)
 	// Don't touch -- used by grading script!
 	ENV_CREATE(TEST, ENV_TYPE_USER);
@@ -61,6 +63,7 @@ i386_init(void)
 
 	// We only have one user environment for now, so just run it.
 	env_run(&envs[0]);
+
 }
 
 

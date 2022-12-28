@@ -8,7 +8,9 @@
 
 #include <inc/memlayout.h>
 #include <inc/assert.h>
+
 struct Env;
+
 
 extern char bootstacktop[], bootstack[];
 
@@ -60,8 +62,10 @@ void	page_decref(struct PageInfo *pp);
 
 void	tlb_invalidate(pml4e_t *pml4e, void *va);
 
+
 int	user_mem_check(struct Env *env, const void *va, size_t len, int perm);
 void	user_mem_assert(struct Env *env, const void *va, size_t len, int perm);
+
 
 static inline ppn_t
 page2ppn(struct PageInfo *pp)
