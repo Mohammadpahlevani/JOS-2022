@@ -6,7 +6,7 @@
 #define UTEMP3			(UTEMP2 + PGSIZE)
 
 // Helper functions for spawn.
-static int init_stack(envid_t child, const char **argv, uintptr_t *init_rsp);
+static int init_stack(envid_t child, const char **argv, uintptr_t *init_esp);
 static int map_segment(envid_t child, uintptr_t va, size_t memsz,
 		       int fd, size_t filesz, off_t fileoffset, int perm);
 static int copy_shared_pages(envid_t child);
@@ -81,7 +81,7 @@ spawn(const char *prog, const char **argv)
 	//     PGOFF(ph->p_offset) == PGOFF(ph->p_va).
 	//
 	//   - Call sys_env_set_trapframe(child, &child_tf) to set up the
-	//     correct initial rip and rsp values in the child.
+	//     correct initial eip and esp values in the child.
 	//
 	//   - Start the child process running with sys_env_set_status().
 
@@ -179,11 +179,11 @@ spawnl(const char *prog, const char *arg0, ...)
 // using the arguments array pointed to by 'argv',
 // which is a null-terminated array of pointers to null-terminated strings.
 //
-// On success, returns 0 and sets *init_rsp
+// On success, returns 0 and sets *init_esp
 // to the initial stack pointer with which the child should start.
 // Returns < 0 on failure.
 static int
-init_stack(envid_t child, const char **argv, uintptr_t *init_rsp)
+init_stack(envid_t child, const char **argv, uintptr_t *init_esp)
 {
 	size_t string_size;
 	int argc, i, r;
@@ -230,7 +230,7 @@ init_stack(envid_t child, const char **argv, uintptr_t *init_rsp)
 	//	  (Again, argv should use an address valid in the child's
 	//	  environment.)
 	//
-	//	* Set *init_rsp to the initial stack pointer for the child,
+	//	* Set *init_esp to the initial stack pointer for the child,
 	//	  (Again, use an address valid in the child's environment.)
 	for (i = 0; i < argc; i++) {
 		argv_store[i] = UTEMP2USTACK(string_store);
@@ -243,7 +243,7 @@ init_stack(envid_t child, const char **argv, uintptr_t *init_rsp)
 	argv_store[-1] = UTEMP2USTACK(argv_store);
 	argv_store[-2] = argc;
 
-	*init_rsp = UTEMP2USTACK(&argv_store[-2]);
+	*init_esp = UTEMP2USTACK(&argv_store[-2]);
 
 	// After completing the stack, map it into the child's address space
 	// and unmap it from ours!
@@ -301,6 +301,33 @@ static int
 copy_shared_pages(envid_t child)
 {
 	// LAB 5: Your code here.
+	int r, perm;
+	void* va;
+	uint64_t pml4e, pdpe, pde, pte, base_pml4e, base_pdpe, base_pde, entry;
+	for(pml4e = 0; pml4e < VPML4E(UTOP); pml4e++){
+		if(uvpml4e[pml4e] & PTE_P){
+			base_pml4e = pml4e * NPDPENTRIES;
+			for(pdpe = 0; pdpe < NPDPENTRIES; pdpe++){
+				if(uvpde[base_pml4e + pdpe] & PTE_P){
+					base_pdpe = (base_pml4e + pdpe) * NPDENTRIES;
+					for(pde = 0; pde < NPDENTRIES; pde++){
+						if(uvpd[base_pdpe + pde] & PTE_P){
+							base_pde = (base_pdpe + pde) * NPTENTRIES;
+							for(pte = 0; pte < NPTENTRIES; pte++){
+								entry = base_pde + pte;
+								perm = uvpt[entry] & PTE_SYSCALL;
+								if(perm & PTE_SHARE){
+									va = (void*)(PGSIZE * entry);
+									r = sys_page_map(0, va, child, va, perm);		
+									if(r < 0) return r;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 	return 0;
 }
 

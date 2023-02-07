@@ -42,7 +42,7 @@ extern pml4e_t *boot_pml4e;
 	(void*) ((uint64_t)(__m_pa + KERNBASE));				\
 })
 
-
+void check_pc();
 enum {
 	// For page_alloc, zero the returned physical page.
 	ALLOC_ZERO = 1<<0,
