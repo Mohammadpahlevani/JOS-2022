@@ -5,11 +5,7 @@
 #	Recursive Make Considered Harmful
 #	http://aegis.sourceforge.net/auug97.pdf
 #
-
-
 OBJDIR := obj
-
-
 
 # Run 'make V=1' to turn on verbose commands, or 'make V=0' to turn them off.
 ifeq ($(V),1)
@@ -87,7 +83,7 @@ PERL	:= perl
 # Only optimize to -O1 to discourage inlining, which complicates backtraces.
 CFLAGS := $(CFLAGS) $(DEFS) $(LABDEFS) -O0 -fno-builtin -I$(TOP) -MD
 CFLAGS += -fno-omit-frame-pointer -mno-red-zone
-CFLAGS += -Wall -Wno-format -Wno-unused -Werror -gdwarf-2 -fvar-tracking
+CFLAGS += -Wall -Wno-format -Wno-unused -Werror -gdwarf-2
 
 # Add -fno-stack-protector if the option exists.
 CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
@@ -118,11 +114,9 @@ all:
 	   $(OBJDIR)/lib/%.o $(OBJDIR)/fs/%.o $(OBJDIR)/net/%.o \
 	   $(OBJDIR)/user/%.o
 
-EXTRA_HOST_KERN_CFLAGS :=
 KERN_CFLAGS := $(CFLAGS) -DJOS_KERNEL -DDWARF_SUPPORT -gdwarf-2 -mcmodel=large -m64
 BOOT_CFLAGS := $(CFLAGS) -DJOS_KERNEL -gdwarf-2 -m32
 USER_CFLAGS := $(CFLAGS) -DJOS_USER -gdwarf-2 -mcmodel=large -m64
-
 
 # Update .vars.X if variable X has changed since the last make run.
 #
@@ -135,7 +129,6 @@ $(OBJDIR)/.vars.%: FORCE
 .PHONY: FORCE
 
 
-
 # Include Makefrags for subdirectories
 include boot/Makefrag
 # include boot1/Makefrag
@@ -144,11 +137,9 @@ include lib/Makefrag
 include user/Makefrag
 
 
-
 CPUS ?= 1
 
-## We need KVM for qemu to export VMX
-QEMUOPTS = -cpu qemu64,+vmx -enable-kvm -m 256 -drive format=raw,file=$(OBJDIR)/kern/kernel.img -serial mon:stdio -gdb tcp::$(GDBPORT)
+QEMUOPTS = -m 256 -hda $(OBJDIR)/kern/kernel.img -serial mon:stdio -gdb tcp::$(GDBPORT)
 QEMUOPTS += $(shell if $(QEMU) -nographic -help | grep -q '^-D '; then echo '-D qemu.log'; fi)
 IMAGES = $(OBJDIR)/kern/kernel.img
 QEMUOPTS += -smp $(CPUS)
@@ -160,7 +151,6 @@ QEMUOPTS += $(QEMUEXTRA)
 	sed -e "s/localhost:1234/localhost:$(GDBPORT)/" -e "s/jumpto_longmode/*0x$(LONGMODE)/" < $^ > $@
 
 pre-qemu: .gdbinit
-
 
 qemu: $(IMAGES) pre-qemu
 	$(QEMU) $(QEMUOPTS)
@@ -211,13 +201,10 @@ grade:
 	  (echo "'make clean' failed.  HINT: Do you have another running instance of JOS?" && exit 1)
 	./grade-lab$(LAB) $(GRADEFLAGS)
 
-update:
-       git pull https://github.com/comp790-s20/jos.git
-
 handin: realclean
 	@if [ `git status --porcelain| wc -l` != 0 ] ; then echo "\n\n\n\n\t\tWARNING: YOU HAVE UNCOMMITTED CHANGES\n\n    Consider committing any pending changes and rerunning make handin.\n\n\n\n"; fi
 	git tag -f -a lab$(LAB)-handin -m "Lab$(LAB) Handin"
-	git push --tags origin
+	git push --tags handin
 
 handin-check:
 	@if test "$$(git symbolic-ref HEAD)" != refs/heads/lab$(LAB); then \

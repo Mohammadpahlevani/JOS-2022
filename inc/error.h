@@ -17,13 +17,7 @@ enum {
 
 	E_IPC_NOT_RECV	= 8,	// Attempt to send to env that is not recving
 	E_EOF		= 9,	// Unexpected end of file
-	// VMM error codes.
-	E_NO_VMX = 17,    // The processor doesn't support VMX or 
-	// is turned off in the BIOS
-	E_NO_EPT = 18,
-	E_VMX_ON = 19,    // Couldn't transition the cpu to VMX root mode
-	E_VMCS_INIT = 20, // Couldn't init the VMCS region
-	E_NO_ENT = 21,
+
 	MAXERROR
 };
 

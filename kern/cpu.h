@@ -10,8 +10,6 @@
 // Maximum number of CPUs
 #define NCPU  8
 
-
-
 // Values of status in struct Cpu
 enum {
 	CPU_UNUSED = 0,

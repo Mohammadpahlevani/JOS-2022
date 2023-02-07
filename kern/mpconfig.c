@@ -60,7 +60,6 @@ struct mpproc {         // processor table entry [MP 4.3.1]
 } __attribute__((__packed__));
 
 // mpproc flags
-#define MPROC_EN 0x01
 #define MPPROC_BOOT 0x02                // This mpproc is the bootstrap processor
 
 // Table entry types
@@ -182,18 +181,11 @@ mp_init(void)
 		switch (*p) {
 		case MPPROC:
 			proc = (struct mpproc *)p;
-			if (proc->flags & MPPROC_BOOT) {
+			if (proc->flags & MPPROC_BOOT)
 				bootcpu = &cpus[ncpu];
-				cprintf("Found boot cpu..\n");
-			}
 			if (ncpu < NCPU) {
-				cprintf("type: %d apicid:%d version:%d signature:%x feature:%x flags:%x reserved:%x\n", proc->type, proc->apicid, proc->version, proc->signature, proc->feature, proc->flags, proc->reserved);
-				if (proc->flags & MPROC_EN) {
-					cpus[ncpu].cpu_id = ncpu;
-					ncpu++;
-				} else {
-					cprintf("Found unusable CPU. Not intiializing it..\n");
-				}
+				cpus[ncpu].cpu_id = ncpu;
+				ncpu++;
 			} else {
 				cprintf("SMP: too many CPUs, CPU %d disabled\n",
 					proc->apicid);
@@ -204,15 +196,14 @@ mp_init(void)
 		case MPIOAPIC:
 		case MPIOINTR:
 		case MPLINTR:
-		p += 8;
-		continue;
+			p += 8;
+			continue;
 		default:
 			cprintf("mpinit: unknown config type %x\n", *p);
 			ismp = 0;
 			i = conf->entry;
 		}
 	}
-
 
 	bootcpu->cpu_status = CPU_STARTED;
 	if (!ismp) {

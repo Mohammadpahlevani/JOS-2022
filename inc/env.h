@@ -55,9 +55,8 @@ struct Env {
 	int env_cpunum;			// The CPU that the env is running on
 
 	// Address space
-	pml4e_t *env_pml4e;		// Kernel virtual address of top-level page dir,
-	// or root of extended page tables in guest mode.
-	physaddr_t env_cr3;
+	pml4e_t *env_pml4e;		// Kernel virtual address of page dir
+    physaddr_t env_cr3;
 
 	// Exception handling
 	void *env_pgfault_upcall;	// Page fault upcall entry point
@@ -68,7 +67,7 @@ struct Env {
 	uint32_t env_ipc_value;		// Data value sent to us
 	envid_t env_ipc_from;		// envid of the sender
 	int env_ipc_perm;		// Perm of page mapping received
-	uint8_t *elf;
+    uint8_t *elf;
 };
 
 #endif // !JOS_INC_ENV_H

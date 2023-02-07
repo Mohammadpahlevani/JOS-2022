@@ -1,7 +1,6 @@
 #include <inc/mmu.h>
 #include <inc/memlayout.h>
 
-
 #define	RELOC(x) ((x) - KERNBASE)
 
 # Translation: cr3->pml4->pdpe->pgdir
@@ -18,17 +17,15 @@
 _head64:
 
 # Save multiboot_info addr passed by bootloader
-	
     movl $multiboot_info, %eax
     movl %ebx, (%eax)
 
-    movw $0x1234,0x472			# warm boot	
-	
+	movw $0x1234,0x472			# warm boot
 # Reset the stack pointer in case we didn't come from the loader
     movl $0x7c00,%esp
 
     call verify_cpu   #check if CPU supports long mode
-    movl $CR4_PAE,%eax	
+    movl $CR4_PAE,%eax
     movl %eax,%cr4
 
 # build an early boot pml4 at physical address pml4phys 

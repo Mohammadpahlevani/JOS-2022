@@ -42,6 +42,46 @@
 #ifndef __ASSEMBLER__
 
 #include <inc/types.h>
+// LAB 3: Your code here.
+     void jos64_divide();
+     void jos64_debug();
+     void jos64_nmi();
+     void jos64_breakpoint();
+     void jos64_overflow();
+     void jos64_boundcheck();
+     void jos64_ill_opcode();
+     void jos64_device();
+
+     void jos64_doublefault();
+     void jos64_tss_segment();    
+     void jos64_stack();
+     void jos64_stackexception();
+     void jos64_protectionfault();
+     void jos64_pagefault();
+
+     void jos64_fp_error();
+     void jos64_align();
+     void jos64_mcheck();
+     void jos64_simd_error();
+     void jos64_systemcall();
+    
+     void jos64_irq32();
+     void jos64_irq33();
+     void jos64_irq34();
+     void jos64_irq35();
+     void jos64_irq36();
+     void jos64_irq37();
+     void jos64_irq38();
+     void jos64_irq39();
+     void jos64_irq40();
+     void jos64_irq41();
+     void jos64_irq42();
+     void jos64_irq43();
+     void jos64_irq44();
+     void jos64_irq45();
+     void jos64_irq46();
+     void jos64_irq47();
+
 
 struct PushRegs {
 	/* registers as pushed by pusha */

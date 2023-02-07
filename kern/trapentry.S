@@ -50,9 +50,47 @@
    Find the PUSHA,POPA macros in kern/macro.h. Since amd64 doesn't support
    pusha,popa so you will find these macros handy.
  */
+  TRAPHANDLER_NOEC(jos64_divide, 0)
+  TRAPHANDLER_NOEC(jos64_debug, 1)
+  TRAPHANDLER_NOEC(jos64_nmi, 2)
+  TRAPHANDLER_NOEC(jos64_breakpoint, 3)
+  TRAPHANDLER_NOEC(jos64_overflow, 4)
+  TRAPHANDLER_NOEC(jos64_boundcheck, 5)
+  TRAPHANDLER_NOEC(jos64_ill_opcode, 6)
+  TRAPHANDLER_NOEC(jos64_device, 7)
 
+  TRAPHANDLER(jos64_doublefault, 8)
+  TRAPHANDLER(jos64_tss_segment, 10)
+  TRAPHANDLER(jos64_stack, 11)
+  TRAPHANDLER(jos64_stackexception, 12)
+  TRAPHANDLER(jos64_protectionfault, 13)
+  TRAPHANDLER(jos64_pagefault, 14)
 
+  TRAPHANDLER_NOEC(jos64_fp_error, 16)
+  TRAPHANDLER_NOEC(jos64_align, 17)
+  TRAPHANDLER_NOEC(jos64_mcheck, 18)
+  TRAPHANDLER_NOEC(jos64_simd_error, 19)
+  TRAPHANDLER_NOEC(jos64_systemcall, 48)
+  
+  TRAPHANDLER_NOEC(jos64_irq32, IRQ_OFFSET)
+  TRAPHANDLER_NOEC(jos64_irq33, IRQ_OFFSET+1)
+  TRAPHANDLER_NOEC(jos64_irq34, IRQ_OFFSET+2)
+  TRAPHANDLER_NOEC(jos64_irq35, IRQ_OFFSET+3)
+  TRAPHANDLER_NOEC(jos64_irq36, IRQ_OFFSET+4)
+  TRAPHANDLER_NOEC(jos64_irq37, IRQ_OFFSET+5)
+  TRAPHANDLER_NOEC(jos64_irq38, IRQ_OFFSET+6)
+  TRAPHANDLER_NOEC(jos64_irq39, IRQ_OFFSET+7)
+  TRAPHANDLER_NOEC(jos64_irq40, IRQ_OFFSET+8)
+  TRAPHANDLER_NOEC(jos64_irq41, IRQ_OFFSET+9)
+  TRAPHANDLER_NOEC(jos64_irq42, IRQ_OFFSET+10)
+  TRAPHANDLER_NOEC(jos64_irq43, IRQ_OFFSET+11)
+  TRAPHANDLER_NOEC(jos64_irq44, IRQ_OFFSET+12)
+  TRAPHANDLER_NOEC(jos64_irq45, IRQ_OFFSET+13)
+  TRAPHANDLER_NOEC(jos64_irq46, IRQ_OFFSET+14)
+  TRAPHANDLER_NOEC(jos64_irq47, IRQ_OFFSET+15)
 
+  
+  	 
 /*
  * Lab 3: Your code here for _alltraps
  *
@@ -60,3 +98,25 @@
  *       for how to pass a pointer to the trapframe.
  */
 
+
+ _alltraps:
+        movq $0, %r8
+        movw %ds,%r8
+        pushq %r8
+        movw %es, %r8
+        pushq %r8
+        PUSHA
+        mov %rsp, %rdi
+        movq $0, %r8
+        movw $(GD_KD), %r8
+        movw %r8, %es
+        movw %r8, %ds
+        call trap
+        POPA_
+	mov $0, %rax
+	popq %rax
+	movw %rax, %es
+	popq %rax
+	movw %rax, %ds
+	addq $8, %rsp
+    	iret 

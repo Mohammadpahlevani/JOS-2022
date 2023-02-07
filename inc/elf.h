@@ -23,7 +23,7 @@ struct Elf {
 
 struct Proghdr {
 	uint32_t p_type;
-	uint32_t p_flags;
+    uint32_t p_flags;
 	uint64_t p_offset;
 	uint64_t p_va;
 	uint64_t p_pa;

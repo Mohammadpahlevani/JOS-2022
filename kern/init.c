@@ -17,17 +17,30 @@
 #include <kern/picirq.h>
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
+#include <inc/x86.h>
+#include <inc/x86.h>
 
 uint64_t end_debug;
 
 static void boot_aps(void);
 
 
+// Test the stack backtrace function (lab 1 only)
+void
+test_backtrace(int x)
+{
+	cprintf("entering test_backtrace %d\n", x);
+	if (x > 0)
+	        test_backtrace(x-1);
+	else
+	      mon_backtrace(0, 0, 0);
+	cprintf("leaving test_backtrace %d\n", x);
+}
 
 void
 i386_init(void)
 {
-	/* __asm __volatile("int $12"); */
+    /* __asm __volatile("int $12"); */
 
 	extern char edata[], end[];
 
@@ -42,8 +55,8 @@ i386_init(void)
 
 	cprintf("6828 decimal is %o octal!\n", 6828);
 
-	extern char end[];
-	end_debug = read_section_headers((0x10000+KERNBASE), (uintptr_t)end);
+    extern char end[];
+    end_debug = read_section_headers((0x10000+KERNBASE), (uintptr_t)end); 
 
 	// Lab 2 memory management initialization functions
 	x64_vm_init();
@@ -53,6 +66,7 @@ i386_init(void)
 	trap_init();
 
 	// Lab 4 multiprocessor initialization functions
+	
 	mp_init();
 	lapic_init();
 
@@ -61,21 +75,17 @@ i386_init(void)
 
 	// Acquire the big kernel lock before waking up APs
 	// Your code here:
-
+	lock_kernel();
 	// Starting non-boot CPUs
 	boot_aps();
-
-
-
-
 
 #if defined(TEST)
 	// Don't touch -- used by grading script!
 	ENV_CREATE(TEST, ENV_TYPE_USER);
 #else
 	// Touch all you want.
-
-	ENV_CREATE(user_primes, ENV_TYPE_USER);
+	ENV_CREATE(user_spin, ENV_TYPE_USER);
+	//ENV_CREATE(user_yield, ENV_TYPE_USER);
 #endif // TEST*
 
 	// Schedule and run the first user environment!
@@ -103,7 +113,7 @@ boot_aps(void)
 		if (c == cpus + cpunum())  // We've started already.
 			continue;
 
-		// Tell mpentry.S what stack to use
+		// Tell mpentry.S what stack to use 
 		mpentry_kstack = percpu_kstacks[c - cpus] + KSTKSIZE;
 		// Start the CPU at mpentry_start
 		lapic_startap(c->cpu_id, PADDR(code));
@@ -111,13 +121,14 @@ boot_aps(void)
 		while(c->cpu_status != CPU_STARTED)
 			;
 	}
+
 }
 
 // Setup code for APs
 void
 mp_main(void)
 {
-	// We are in high EIP now, safe to switch to kern_pgdir
+	// We are in high EIP now, safe to switch to kern_pgdir 
 	lcr3(boot_cr3);
 	cprintf("SMP: CPU %d starting\n", cpunum());
 
@@ -131,11 +142,11 @@ mp_main(void)
 	// only one CPU can enter the scheduler at a time!
 	//
 	// Your code here:
-
+	lock_kernel();
+	sched_yield();
 	// Remove this after you finish Exercise 4
 	for (;;);
 }
-
 
 /*
  * Variable panicstr contains argument to first call to panic; used as flag

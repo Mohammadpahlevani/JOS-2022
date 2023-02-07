@@ -1,7 +1,3 @@
-
-#ifndef JOS_MB_H
-#define JOS_MB_H
-
  /* multiboot.h - the header for Multiboot */
  /* Copyright (C) 1999, 2001  Free Software Foundation, Inc.
  
@@ -21,7 +17,6 @@
  
  #define APPEND_HILO(hi, lo) (((uint64_t)hi << 32) + lo)
  
-static __inline uint32_t restrictive_type(uint32_t t1, uint32_t t2);
 
  /* Types. */
  
@@ -104,7 +99,7 @@ static __inline uint32_t restrictive_type(uint32_t t1, uint32_t t2);
    uint32_t type;
  } memory_map_t;
 
-static __inline uint32_t restrictive_type(uint32_t t1, uint32_t t2) {
+uint32_t restrictive_type(uint32_t t1, uint32_t t2) {
   if(t1==MB_TYPE_BAD || t2==MB_TYPE_BAD)
     return MB_TYPE_BAD;
   else if(t1==MB_TYPE_ACPI_NVS || t2==MB_TYPE_ACPI_NVS)
@@ -116,6 +111,4 @@ static __inline uint32_t restrictive_type(uint32_t t1, uint32_t t2) {
 
   return MB_TYPE_USABLE;
 }
-
-#endif
 

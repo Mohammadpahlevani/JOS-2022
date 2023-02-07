@@ -21,15 +21,15 @@ syscall(int num, int check, uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, 
 	// memory locations.
 
 	asm volatile("int %1\n"
-		     : "=a" (ret)
-		     : "i" (T_SYSCALL),
-		       "a" (num),
-		       "d" (a1),
-		       "c" (a2),
-		       "b" (a3),
-		       "D" (a4),
-		       "S" (a5)
-		     : "cc", "memory");
+		: "=a" (ret)
+		: "i" (T_SYSCALL),
+		  "a" (num),
+		  "d" (a1),
+		  "c" (a2),
+		  "b" (a3),
+		  "D" (a4),
+		  "S" (a5)
+		: "cc", "memory");
 
 	if(check && ret > 0)
 		panic("syscall %d returned %d (> 0)", num, ret);
@@ -58,7 +58,7 @@ sys_env_destroy(envid_t envid)
 envid_t
 sys_getenvid(void)
 {
-	return syscall(SYS_getenvid, 0, 0, 0, 0, 0, 0);
+	 return syscall(SYS_getenvid, 0, 0, 0, 0, 0, 0);
 }
 
 void
