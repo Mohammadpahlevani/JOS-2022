@@ -1,2 +1,2 @@
-# advanced os labs
-fall 2021
+# Advanced OS Labs
+Fall 2021
